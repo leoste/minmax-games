@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Kabe</title>
+  <script>
+    const moveDirections = {
+      up: -1,
+      down: 1
+    }
+
+    const pieceValues = {
+      regular: 1,
+      dame: 3
+    }
+
+    const rules = {
+      board: {
+        width: 8,
+        height: 8,
+        pieceRows: 3
+      },
+      ai: {
+        depth: 3
+      },
+      players: {
+        top: {
+          name: 'top',
+          id: 'N',
+          bestMultiplier: -1,
+          pieces: {
+            regular: {
+              name: 'regular',
+              value: pieceValues.regular,
+              id: 'n',
+              walkDirections: [
+                moveDirections.down
+              ],
+              eatDirections: [
+                moveDirections.down,
+                moveDirections.up
+              ]
+            },
+            dame: {
+              name: 'dame',
+              value: pieceValues.dame,
+              id: 'N',
+              walkDirections: [
+                moveDirections.down,
+                moveDirections.up
+              ],
+              eatDirections: [
+                moveDirections.down,
+                moveDirections.up
+              ]
+            }
+          }
+        },
+        bottom: {
+          name: 'bottom',
+          id: 'X',
+          bestMultiplier: 1,
+          pieces: {
+            regular: {
+              name: 'regular',
+              value: pieceValues.regular,
+              id: 'x',
+              walkDirections: [
+                moveDirections.up
+              ],
+              eatDirections: [
+                moveDirections.up,
+                moveDirections.down
+              ]
+            },
+            dame: {
+              name: 'dame',
+              value: pieceValues.dame,
+              id: 'X',
+              walkDirections: [
+                moveDirections.up,
+                moveDirections.down
+              ],
+              eatDirections: [
+                moveDirections.up,
+                moveDirections.down
+              ]
+            }
+          }
+        },
+        empty: {
+          name: 'empty',
+          id: '.',
+          bestMultiplier: 0,
+          pieces: {
+            regular: {
+              name: 'regular',
+              value: pieceValues.regular,
+              id: '.',
+              walkDirections: [],
+              eatDirections: []
+            }
+          }
+        }
+      }
+    };
+
+    let currentState = [[], ''];
+
+    const getPiecePlayerKey = (pieceId) => {
+      switch (pieceId) {
+        case rules.players.top.pieces.regular.id:
+        case rules.players.top.pieces.dame.id:
+          return rules.players.top.name;
+        case rules.players.bottom.pieces.regular.id:
+        case rules.players.bottom.pieces.dame.id:
+          return rules.players.bottom.name;
+        case rules.players.empty.pieces.regular.id:
+          return rules.players.empty.name;
+      }
+    }
+
+    const getPieceKey = (pieceId) => {
+      switch (pieceId) {
+        case rules.players.top.pieces.regular.id:
+          return rules.players.top.pieces.regular.name;
+        case rules.players.top.pieces.dame.id:
+          return rules.players.top.pieces.dame.name;
+        case rules.players.bottom.pieces.regular.id:
+          return rules.players.bottom.pieces.regular.name;
+        case rules.players.bottom.pieces.dame.id:
+          return rules.players.bottom.pieces.dame.name;
+        case rules.players.empty.pieces.regular.id:
+          return rules.players.empty.pieces.regular.name;
+      }
+    }
+
+    const getPlayerKey = (playerId) => {
+      switch (playerId) {
+        case rules.players.top.id:
+          return rules.players.top.name;
+        case rules.players.bottom.id:
+          return rules.players.bottom.name;
+        case rules.players.empty.id:
+          return rules.players.empty.name;
+      }
+    }
+
+    const getEnemyKey = (playerId) => {
+      switch (playerId) {
+        case rules.players.top.id:
+          return rules.players.bottom.name;
+        case rules.players.bottom.id:
+          return rules.players.top.name;
+      }
+    }
+
+    const isSquareBetweenBounds = (i) => {
+      if (i >= 0 && i < rules.board.width * rules.board.height) return true;
+    }
+
+    const isSquareFree = (state, i) => {
+      if (isSquareBetweenBounds(i) && state[0][i] === rules.players.empty.pieces.regular.id) return true;
+    }
+
+    const isSquareEnemy = (state, i) => {
+      let enemyKey = getEnemyKey(state[1]);
+
+      if (isSquareBetweenBounds(i) && getPiecePlayerKey(state[0][i]) === enemyKey) return true;
+    }
+
+    const getStrideDirections = (i, strideLength = 1) => {
+      let strideDirections = [];
+      if (i % rules.board.width >= strideLength) strideDirections.push(-1);
+      if (i % rules.board.width < rules.board.width - strideLength) strideDirections.push(1);
+      return strideDirections;
+    }
+
+    const getNextStates = (state) => {
+      let playerKey = getPlayerKey(state[1]);
+
+      const getNextPieceId = (pieceId, i) => {
+        let pieceKey = getPieceKey(pieceId);
+
+        if (
+          ((i >= rules.board.width * (rules.board.height - 1) &&
+            rules.players[playerKey].id === rules.players.top.id) ||
+            (i < rules.board.width &&
+              rules.players[playerKey].id === rules.players.bottom.id)) &&
+          rules.players[playerKey].pieces[pieceKey].id === rules.players[playerKey].pieces.regular.id
+        ) {
+          return rules.players[playerKey].pieces.dame.id;
+        }
+        else {
+          return pieceId;
+        }
+      };
+
+      // recursive function to allow eating chains      
+      const getEatStates = (state, squareId = undefined, i = undefined) => {
+        let eatMoves = [];
+
+        let calculateMove = (pieceId, i) => {
+          let piecePlayerKey = getPiecePlayerKey(pieceId);
+          let strideDirections = getStrideDirections(i, 2);
+
+          if (piecePlayerKey === playerKey) {
+            let pieceKey = getPieceKey(pieceId);
+
+            rules.players[piecePlayerKey].pieces[pieceKey].eatDirections.forEach((eatDirection) => {
+              strideDirections.forEach((strideDirection) => {
+                let moveOffset = eatDirection * rules.board.width + strideDirection;
+                let eatMove = [i, i + moveOffset, i + moveOffset * 2];
+
+                if (isSquareEnemy(state, eatMove[1]) && isSquareFree(state, eatMove[2])) {
+                  eatMoves.push(eatMove);
+                }
+              });
+            });
+          }
+        }
+
+        // if there is no squareId provided, calculate all available moves.
+        // if there is a squareId and i provided, calculate possible moves only for that square.
+        if (squareId) {
+          calculateMove(squareId, i)
+        }
+        else {
+          state[0].forEach(calculateMove);
+        }
+
+        let eatStates = [];
+
+        eatMoves.forEach((eatMove) => {
+          let nextState = [];
+          nextState[0] = [...state[0]];
+          nextState[0][eatMove[0]] = rules.players.empty.pieces.regular.id;
+          nextState[0][eatMove[1]] = rules.players.empty.pieces.regular.id;
+          nextState[0][eatMove[2]] = getNextPieceId(state[0][eatMove[0]], eatMove[2]);
+          nextState[1] = state[1];
+
+          // TODO võimalik bug: kui sama nupp saab mitut süüa, siis sööb mõlemad?
+          let nextEatStates = getEatStates(nextState, nextState[0][eatMove[2]], eatMove[2]);
+
+          if (nextEatStates.length > 0) {
+            eatStates = [...eatStates, ...nextEatStates];
+          }
+          else {
+            nextState[1] = rules.players[getEnemyKey(state[1])].id;
+            eatStates.push(nextState);
+          }
+        })
+
+        return eatStates;
+      };
+
+      let eatStates = getEatStates(state);
+
+      if (eatStates.length > 0) {
+        return eatStates;
+      }
+      else {
+        let walkMoves = [];
+
+        state[0].forEach((pieceId, i) => {
+          let piecePlayerKey = getPiecePlayerKey(pieceId);
+          let strideDirections = getStrideDirections(i, 1);
+
+          if (piecePlayerKey === playerKey) {
+            let pieceKey = getPieceKey(pieceId);
+
+            rules.players[piecePlayerKey].pieces[pieceKey].walkDirections.forEach((walkDirection) => {
+              strideDirections.forEach((strideDirection) => {
+                let walkMove = [i, i + walkDirection * rules.board.width + strideDirection];
+
+                if (isSquareFree(state, walkMove[1])) {
+                  walkMoves.push(walkMove);
+                }
+              });
+            });
+          }
+        });
+
+        let walkStates = [];
+
+        walkMoves.forEach((walkMove) => {
+          let nextState = [];
+          nextState[0] = [...state[0]];
+          nextState[0][walkMove[0]] = rules.players.empty.pieces.regular.id;
+          nextState[0][walkMove[1]] = getNextPieceId(state[0][walkMove[0]], walkMove[1]);
+          nextState[1] = rules.players[getEnemyKey(state[1])].id;
+          walkStates.push(nextState);
+        });
+
+        return walkStates;
+      }
+    }
+
+    const getRandomNextState = (state) => {
+      let states = getNextStates(state);
+
+      if (states.length > 0) {
+        let randomState = states[Math.floor(Math.random() * states.length)];
+        return randomState;
+      }
+    }
+
+    const getBestMultiplier = (playerId) => {
+      let playerKey = getPlayerKey(playerId);
+      let bestMultiplier = rules.players[playerKey].bestMultiplier;
+      return bestMultiplier;
+    }
+
+    const getReallyBadEvaluation = (bestMultiplier) => {
+      return bestMultiplier * -999;
+    }
+
+    const evaluateState = (state, depth = rules.ai.depth) => {
+      let states = getNextStates(state);
+      let bestMultiplier = getBestMultiplier(state[1]);
+
+      // no moves left, this will negatively impact the economy
+      if (states.length <= 0) {
+        let evaluation = getReallyBadEvaluation(bestMultiplier);
+
+        return evaluation;
+      }
+      // crystal ball into the future
+      else if (depth > 0) {
+        let evaluations = states.map(state => evaluateState(state, depth - 1));
+
+        let bestEvaluation = 0;
+
+        evaluations.forEach((evaluation => {
+          if (evaluation * bestMultiplier > bestEvaluation * bestMultiplier) {
+            bestEvaluation = evaluation;
+          }
+        }));
+
+        return bestEvaluation;
+      }
+      // crystal ball broke
+      else {
+        let evaluation = 0;
+
+        state[0].forEach((squareId) => {
+          let pieceKey = getPieceKey(squareId);
+          let piecePlayerKey = getPiecePlayerKey(squareId);
+          let bestMultiplier = getBestMultiplier(rules.players[piecePlayerKey].id);
+          evaluation += rules.players[piecePlayerKey].pieces[pieceKey].value * bestMultiplier;
+        })
+
+        return evaluation;
+      }
+    }
+
+    const pickRandomState = (states) => {
+      return states[Math.floor(Math.random() * states.length)];
+    }
+
+    const pickBestState = (states, bestMultiplier) => {
+      let evaluationPairs = states.map(state => [evaluateState(state), state]);
+
+      let bestEvaluation = getReallyBadEvaluation(bestMultiplier);
+      let bestStates = [];
+
+      evaluationPairs.forEach((pair) => {
+        if (pair[0] * bestMultiplier > bestEvaluation * bestMultiplier) {
+          bestEvaluation = pair[0];
+          bestStates = [pair[1]];
+        }
+        else if (pair[0] === bestEvaluation) {
+          bestStates.push(pair[1]);
+        }
+      });
+
+      // it should always be > 0 but just in case
+      if (bestStates.length > 0) return pickRandomState(bestStates);
+      // this else should never fire
+      else {
+        window.alert("bestStates.length is not > 0");
+        return pickRandomState(states);
+      }
+    }
+
+    const getBestNextState = (state) => {
+      let states = getNextStates(state);
+
+      if (states.length > 0) {
+        let bestMultiplier = getBestMultiplier(state[1]);
+        return pickBestState(states, bestMultiplier);
+      }
+    }
+
+    const setState = (state) => {
+      currentState = state;
+      render();
+    }
+
+    const trySetState = (state) => {
+      if (state) {
+        setState(state);
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+
+    const setup = () => {
+      for (let i = 0; i < rules.board.height; i++) {
+        for (let j = 0; j < rules.board.width; j++) {
+          if ((i % 2 + j % 2) % 2 === 0) {
+            //these squares are completely unaccessible
+            currentState[0].push(rules.players.empty.pieces.regular.id);
+          }
+          else {
+            if (i >= 0 && i < rules.board.pieceRows) {
+              currentState[0].push(rules.players.top.pieces.regular.id);
+            }
+            else if (i >= rules.board.pieceRows && i < rules.board.height - rules.board.pieceRows) {
+              currentState[0].push(rules.players.empty.pieces.regular.id);
+            }
+            else if (i >= rules.board.height - rules.board.pieceRows && i < rules.board.height) {
+              currentState[0].push(rules.players.bottom.pieces.regular.id);
+            }
+          }
+        }
+      }
+
+      currentState[1] = rules.players.bottom.id; // bottom alustab      
+
+      let gameHTML = '';
+      gameHTML += '<table class="square-container">';
+      for (let i = 0; i < rules.board.height; i++) {
+        gameHTML += '<tr>';
+        for (let j = 0; j < rules.board.width; j++) {
+          gameHTML += '<th class="square ';
+          gameHTML += (i % 2 + j % 2) % 2 === 0 ? 'useless' : 'useable';
+          gameHTML += '-square" id="square-' + (i * rules.board.width + j) + '"></th>';
+        }
+        gameHTML += '</tr>';
+      }
+      gameHTML += '</table>';
+      gameHTML += '<p>Praegu käib: <span id="gameCurrentTurn"><span></p>';
+      game.innerHTML = gameHTML;
+
+      render();
+
+      //for (let i = 0; i < 10; i++) setState(getRandomNextState(currentState));
+    }
+
+    const render = () => {
+      for (let i = 0; i < currentState[0].length; i++) {
+        const square = document.getElementById('square-' + i);
+
+        if (currentState[0][i] === rules.players.bottom.pieces.regular.id) {
+          square.innerHTML = '<span class="piece regular-piece bottom-piece"></span>'
+        }
+        else if (currentState[0][i] === rules.players.bottom.pieces.dame.id) {
+          square.innerHTML = '<span class="piece dame-piece bottom-piece"></span>';
+        }
+        else if (currentState[0][i] === rules.players.top.pieces.regular.id) {
+          square.innerHTML = '<span class="piece regular-piece top-piece"></span>'
+        }
+        else if (currentState[0][i] === rules.players.top.pieces.dame.id) {
+          square.innerHTML = '<span class="piece dame-piece top-piece"></span>';
+        }
+        else if (currentState[0][i] === rules.players.empty.pieces.regular.id) {
+          square.innerHTML = '';
+        }
+        else {
+          square.innerHTML = '???';
+        }
+      }
+
+      gameCurrentTurn.innerHTML = getPlayerKey(currentState[1]);
+    }
+
+    const buttonRandomMove = () => {
+      trySetState(getRandomNextState(currentState));
+    }
+
+    const buttonBestMove = () => {
+      trySetState(getBestNextState(currentState));
+    }
+
+    const button3 = () => {
+      let i;
+      let interval = window.setInterval(() => {
+        let movesRemaining;
+        if (i % 2 == 0) {
+          movesRemaining = trySetState(getBestNextState(currentState));
+        }
+        else {
+          movesRemaining = trySetState(getRandomNextState(currentState));
+        }
+
+        if (!movesRemaining) window.clearInterval(interval);
+        i++;
+      }, 150);
+    }
+  </script>
+  <style>
+    body div {
+      background-color: antiquewhite;
+
+    }
+
+    .square-container {
+      border: 15px solid burlywood;
+    }
+
+    .square {
+      width: 50px;
+      height: 50px;
+    }
+
+    .useless-square {
+      background-color: antiquewhite;
+    }
+
+    .useable-square {
+      background-color: burlywood;
+    }
+
+    .piece {
+      margin: 10%;
+      height: 80%;
+      width: 80%;
+      display: block;
+    }
+
+    .regular-piece {
+      border-radius: 50%;
+    }
+
+    .dame-piece {
+      border-radius: 30%;
+    }
+
+    .bottom-piece {
+      background-color: maroon;
+    }
+
+    .top-piece {
+      background-color: navy;
+    }
+
+    .box-container {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .box {
+      margin: 15px;
+    }
+  </style>
+</head>
+
+<body onload="setup()">
+  <div>
+    <h1>Kabe mäng</h1>
+    <h2>Reeglid 📑📚</h2>
+    <p>Liikumine</p>
+    <ul>
+      <li>Tavaline nupp liigub 1 üles vasakule või 1 üles paremale.</li>
+      <li>Jõudes vastase esimesele reale, muutub tavaline nupp tammiks.</li>
+      <li>Tamm liigub 1 üles vasakule, 1 üles paremale, 1 alla vasakule või 1 alla paremale.</li>
+    </ul>
+    <p>Söömine</p>
+    <ul>
+      <li>Võimalusel nupp peab vastase nuppu sööma.</li>
+      <li>Nupp sööb 1 üles vasakule, 1 üles paremale, 1 alla vasakule või 1 alla paremale.</li>
+      <li>Kui saab veel süüa, peab sama käigu sees veel sööma.</li>
+    </ul>
+    <!-- TODO:
+      1) select või muu viis, et valida käiku kõigi võimalike seast
+      2) select mängu ajalooga, et saaks vaadata kuidas mäng on läinud
+    -->
+  </div>
+  <div class="box-container">
+    <div class="box">
+      <h2>Mänguväli ⛳</h2>
+      <div id="game"></div>
+    </div>
+    <div class="box">
+      <h2>Juhtnupud 🎮</h2>
+      <p>Üksikkäigud</p>
+      <button id="randomButton" onclick="buttonRandomMove()">Juhuslik käik 🎲😬</button>
+      <button id="bestButton" onclick="buttonBestMove()">Parim käik 🤖🤣</button>
+      <p>Mitmikkäigud</p>
+      <button id="" onclick="button3()">Autoplay AI vs random 🤖🆚🎲</button>
+    </div>
+  </div>
+</body>
+
+</html>
