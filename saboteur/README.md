@@ -1,0 +1,3 @@
+# minmax-saboteur
+
+In saboteur there are good and bad dwarves mining tunnels. Each player has 5 random cards from the pack. In their turn, each player can play or discard a card, and then gets a new one from the pack. Cards can be used to construct tunnels between the starting tile and the three end tiles, to jail other players or to free them/yourself from jail. One of the three end tiles contains gold. The good dwarves wish if they reach the gold, while bad dwarves win if cards run out before the gold is reached. Not all tunnel pieces are useful, so constructing bad tunnels, jailing other players and discarding useful cards instead of playing them is how the saboteurs can sabotage the game.

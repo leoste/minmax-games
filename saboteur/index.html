@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script type="module">
+    import Game from "./modules/game.js";
+
+    let game;
+
+    function instructionsHandler(instructions) {
+      console.log("instructions received", instructions);
+    }
+
+    function setup() {
+      console.clear();
+
+      let game = new Game(instructionsHandler);
+    };
+
+    // TODO: pick one
+    window.addEventListener('load', setup);
+    //window.setup = setup(); // ja siis onload="setup()"
+  </script>
+</head>
+
+<body>
+
+</body>
+
+</html>
