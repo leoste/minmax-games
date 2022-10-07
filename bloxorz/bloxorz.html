@@ -59,29 +59,32 @@
         let state = makeState(states.weirdJump);
 
         function getPossiblePlaces(start) {
-            switch (start.square.type) {
+            let counter = (start.square["way"+start.square.type]?.counter || 0) + 1;
+            let type = start.square.type;
+            
+            switch (type) {
                 case 'X': {
                     return [
-                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'X' } }, pos: { x: start.pos.x + 2, y: start.pos.y, } },
-                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'X' } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
-                        { square: { type: 'X', wayX: { pos: start.pos, type: 'X' } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
-                        { square: { type: 'X', wayX: { pos: start.pos, type: 'X' } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
+                        { square: { type: 'Y', wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 2, y: start.pos.y, } },
+                        { square: { type: 'Y', wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
+                        { square: { type: 'X', wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
+                        { square: { type: 'X', wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
                     ];
                 }
                 case 'Y': {
                     return [
-                        { square: { type: 'X', wayX: { pos: start.pos, type: 'Y' } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
-                        { square: { type: 'X', wayX: { pos: start.pos, type: 'Y' } }, pos: { x: start.pos.x - 2, y: start.pos.y, } },
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Y' } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Y' } }, pos: { x: start.pos.x, y: start.pos.y - 2, } }
+                        { square: { type: 'X', wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
+                        { square: { type: 'X', wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 2, y: start.pos.y, } },
+                        { square: { type: 'Z', wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
+                        { square: { type: 'Z', wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 2, } }
                     ];
                 }
                 case 'Z': {
                     return [
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Z' } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Z' } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
-                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'Z' } }, pos: { x: start.pos.x, y: start.pos.y + 2, } },
-                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'Z' } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
+                        { square: { type: 'Z', wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
+                        { square: { type: 'Z', wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
+                        { square: { type: 'Y', wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 2, } },
+                        { square: { type: 'Y', wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
                     ];
                 }
             }
@@ -186,17 +189,14 @@
             }
 
             let way = finisPlace.square.wayY;
-            let id = 0;
 
             if (way) {
-                while (way.pos.x !== startPlace.pos.x || way.pos.y !== startPlace.pos.y || way.type !== startPlace.square.type) {
+                while (way.counter > 1) {
                     let square = state[way.pos.y][way.pos.x];
                     
-                    id--;
-                    square.ids = square.ids || [];
-                    square.ids.push(id);              
-
                     way = square["way" + way.type];
+                    square.ids = square.ids || [];
+                    square.ids.push(way.counter);
                 }
 
                 finisPlace.square.type = 'W';
