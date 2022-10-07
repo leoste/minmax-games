@@ -6,14 +6,33 @@
         /*  magic values:
 
             square type:
-            T, E, F, X, Y, Z, P
-            tile, edge, finis, lying horizontally, standing, lying vertically, path
+            T, E, F, X, Y, Z
+            tile, edge, finis, lying horizontally, standing, lying vertically
 
             way:
             u, d, l, r, *, .
             up, down, left, right, possible, undecided
         */
         console.clear();
+
+        const states = {
+            doubleVisit: [
+                "TTTEEEEEEE",
+                "TYTEEEEEEE",
+                "TTTTTTTTTE",
+                "ETTETTTTTT",
+                "EEEEEETFTT",
+                "EEEEEETTTE"
+            ],
+            weirdJump: [
+                "TTTEEEEEEE",
+                "TYTEEEEEEE",
+                "TTTETTTTTE",
+                "ETTTTTTTTT",
+                "EEEEEETFTT",
+                "EEEEEETTTE"
+            ]
+        }
 
         function makeState(rows) {
             let state = [];
@@ -37,14 +56,7 @@
             return state;
         }
 
-        let state = makeState([
-            "TTTEEEEEEE",
-            "TYTTEEEEEE",
-            "TTTTEETTTE",
-            "ETTTTTTTTT",
-            "EEEEEETFTT",
-            "EEEEEETTTE"
-        ]);
+        let state = makeState(states.weirdJump);
 
         function getPossiblePlaces(start) {
             switch (start.square.type) {
@@ -154,21 +166,14 @@
                 });
             });
 
-            let safeGuard = 1000;
-
             let unknownPlaces = [startPlace];
             while (unknownPlaces.length > 0) {
                 let currentPlace = unknownPlaces.shift();
-
-                //console.log("1.", currentPlace)
 
                 let possiblePlaces = getPossiblePlaces(currentPlace);
 
                 possiblePlaces.forEach(place => {
                     if (isValidPlace(place)) {
-                        if (state[place.pos.y][place.pos.x].type === 'E') console.log("a");
-
-                        //console.log(place, state[place.pos.y][place.pos.x]);
 
                         let sSquare = state[place.pos.y][place.pos.x];
                         let pSquare = place.square;
@@ -178,24 +183,20 @@
                         }
                     }
                 });
-
-                safeGuard--;
-                if (safeGuard <= 0) break;
             }
 
-            safeGuard = 100;
-
             let way = finisPlace.square.wayY;
+            let id = 0;
 
             if (way) {
                 while (way.pos.x !== startPlace.pos.x || way.pos.y !== startPlace.pos.y || way.type !== startPlace.square.type) {
-                    state[way.pos.y][way.pos.x].type = 'P';
-                    //state[way.pos.y][way.pos.x].type = way.type;
+                    let square = state[way.pos.y][way.pos.x];
+                    
+                    id--;
+                    square.ids = square.ids || [];
+                    square.ids.push(id);              
 
-                    way = state[way.pos.y][way.pos.x]["way" + way.type];
-
-                    safeGuard--;
-                    if (safeGuard <= 0) break;
+                    way = square["way" + way.type];
                 }
 
                 finisPlace.square.type = 'W';
@@ -214,13 +215,20 @@
 
                     if (color.index === i * row.length + j) {
                         view += color.type;
-                        console.log("jee");
                     }
                     else {
                         view += square.type;
                     }
 
-                    view += '"></td>'
+                    view += '">';
+
+                    if (square.ids) {
+                        square.ids.forEach(id => {
+                            view += id + "<br>";
+                        });
+                    }
+
+                    view += '</td>'
 
                     if (square.type == 'X') {
                         color.index = i * row.length + j + 1;
@@ -276,10 +284,6 @@
 
         .Z {
             background-color: palegreen;
-        }
-
-        .P {
-            background-color: silver;
         }
     </style>
 </head>
