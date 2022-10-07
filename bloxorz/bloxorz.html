@@ -39,8 +39,8 @@
 
         let state = makeState([
             "TTTEEEEEEE",
-            "TYTTTEEEEE",
-            "TTTTTETTTE",
+            "TYTTEEEEEE",
+            "TTTTEETTTE",
             "ETTTTTTTTT",
             "EEEEEETFTT",
             "EEEEEETTTE"
@@ -50,26 +50,26 @@
             switch (start.square.type) {
                 case 'X': {
                     return [
-                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'X' }}, pos: { x: start.pos.x + 2, y: start.pos.y, } },
-                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'X' }}, pos: { x: start.pos.x - 1, y: start.pos.y, } },
-                        { square: { type: 'X', wayX: { pos: start.pos, type: 'X' }}, pos: { x: start.pos.x, y: start.pos.y + 1, } },
-                        { square: { type: 'X', wayX: { pos: start.pos, type: 'X' }}, pos: { x: start.pos.x, y: start.pos.y - 1, } }
+                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'X' } }, pos: { x: start.pos.x + 2, y: start.pos.y, } },
+                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'X' } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
+                        { square: { type: 'X', wayX: { pos: start.pos, type: 'X' } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
+                        { square: { type: 'X', wayX: { pos: start.pos, type: 'X' } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
                     ];
                 }
                 case 'Y': {
                     return [
-                        { square: { type: 'X', wayX: { pos: start.pos, type: 'Y' }}, pos: { x: start.pos.x + 1, y: start.pos.y, } },
-                        { square: { type: 'X', wayX: { pos: start.pos, type: 'Y' }}, pos: { x: start.pos.x - 2, y: start.pos.y, } },
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Y' }}, pos: { x: start.pos.x, y: start.pos.y + 1, } },
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Y' }}, pos: { x: start.pos.x, y: start.pos.y - 2, } }
+                        { square: { type: 'X', wayX: { pos: start.pos, type: 'Y' } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
+                        { square: { type: 'X', wayX: { pos: start.pos, type: 'Y' } }, pos: { x: start.pos.x - 2, y: start.pos.y, } },
+                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Y' } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
+                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Y' } }, pos: { x: start.pos.x, y: start.pos.y - 2, } }
                     ];
                 }
                 case 'Z': {
                     return [
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Z' }}, pos: { x: start.pos.x + 1, y: start.pos.y, } },
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Z' }}, pos: { x: start.pos.x - 1, y: start.pos.y, } },
-                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'Z' }}, pos: { x: start.pos.x, y: start.pos.y + 2, } },
-                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'Z' }}, pos: { x: start.pos.x, y: start.pos.y - 1, } }
+                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Z' } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
+                        { square: { type: 'Z', wayZ: { pos: start.pos, type: 'Z' } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
+                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'Z' } }, pos: { x: start.pos.x, y: start.pos.y + 2, } },
+                        { square: { type: 'Y', wayY: { pos: start.pos, type: 'Z' } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
                     ];
                 }
             }
@@ -187,30 +187,34 @@
 
             let way = finisPlace.square.wayY;
 
-            while (way.pos.x !== startPlace.pos.x || way.pos.y !== startPlace.pos.y) {
-                state[way.pos.y][way.pos.x].type = 'P';
-                                
-                way = state[way.pos.y][way.pos.x]["way" + way.type];
+            if (way) {
+                while (way.pos.x !== startPlace.pos.x || way.pos.y !== startPlace.pos.y || way.type !== startPlace.square.type) {
+                    state[way.pos.y][way.pos.x].type = 'P';
+                    //state[way.pos.y][way.pos.x].type = way.type;
 
-                safeGuard--;
-                if (safeGuard <= 0) break;
+                    way = state[way.pos.y][way.pos.x]["way" + way.type];
+
+                    safeGuard--;
+                    if (safeGuard <= 0) break;
+                }
+
+                finisPlace.square.type = 'W';
             }
-
-            finisPlace.square.type = 'F';
         }
 
         function render() {
             let view = "<table>";
 
-            let colorIndex = -1;
+            let color = { index: -1, type: '' };
 
             state.forEach((row, i) => {
                 view += "<tr>";
                 row.forEach((square, j) => {
                     view += '<td class="';
 
-                    if (colorIndex === i * row.length + j) {
-                        view += 'W'
+                    if (color.index === i * row.length + j) {
+                        view += color.type;
+                        console.log("jee");
                     }
                     else {
                         view += square.type;
@@ -219,10 +223,12 @@
                     view += '"></td>'
 
                     if (square.type == 'X') {
-                        colorIndex = i * row.length + j + 1;
+                        color.index = i * row.length + j + 1;
+                        color.type = square.type;
                     }
                     else if (square.type == 'Z') {
-                        colorIndex = (i + 1) * row.length + j;
+                        color.index = (i + 1) * row.length + j;
+                        color.type = square.type;
                     }
                 })
                 view += "</tr>";
@@ -253,17 +259,27 @@
         }
 
         .F {
-            background-color: lime;
+            background-color: black;
         }
 
-        .X,
-        .Y,
+        .W {
+            background-color: gold;
+        }
+
+        .X {
+            background-color: pink;
+        }
+
+        .Y {
+            background-color: lightblue;
+        }
+
         .Z {
-            background-color: hotpink;
+            background-color: palegreen;
         }
 
         .P {
-            background-color: aqua;
+            background-color: silver;
         }
     </style>
 </head>
