@@ -2,6 +2,7 @@
 <html>
 
 <head>
+    <title>Bloxorz</title>
     <script>
         /*  magic values:
 
@@ -140,10 +141,7 @@
             }
         }
 
-        function explore() {
-
-            // leia algus ja lõpp :)
-
+        function getStartAndFinis() {
             let startPlace, finisPlace;
 
             state.forEach((row, i) => {
@@ -157,7 +155,7 @@
                             }
                         }
                     }
-                    else if (square.type === 'F') {
+                    else if (square.type === 'F' || square.type === 'W') {
                         finisPlace = {
                             square,
                             pos: {
@@ -168,6 +166,16 @@
                     }
                 });
             });
+
+            return { startPlace, finisPlace };
+        }
+
+        function explore() {
+            // leia algus ja lõpp :)
+
+            let {startPlace, finisPlace } = getStartAndFinis();
+
+            
 
             let unknownPlaces = [startPlace];
             while (unknownPlaces.length > 0) {
@@ -200,7 +208,15 @@
                 }
 
                 finisPlace.square.type = 'W';
+                renderMessage("Route calculated! :)")
             }
+            else {
+                renderMessage("No route available! :(");
+            }
+        }
+
+        function renderMessage(message) {
+            vastus.innerHTML = message;
         }
 
         function render() {
@@ -245,6 +261,33 @@
             view += "</table>";
 
             laud.innerHTML = view;
+
+            buttons.innerHTML = '';
+
+            let { startPlace, finisPlace } = getStartAndFinis();
+
+            let places = getPossiblePlaces(startPlace);
+
+            places.forEach((place) => {                
+                let button = document.createElement('button');
+
+                let xOffset = place.pos.x - startPlace.pos.x;
+                let yOffset = place.pos.y - startPlace.pos.y;
+
+                if (xOffset > 0) button.innerHTML = "Right";
+                else if (xOffset < 0) button.innerHTML = "Left";
+                else if (yOffset > 0) button.innerHTML = "Down";
+                else if (yOffset < 0) button.innerHTML = "Up";
+
+                button.disabled = !isValidPlace(place);
+                
+                button.onclick = () => {
+                    startPlace.square.type = "T";
+                    state[place.pos.y][place.pos.x].type = place.square.type;
+                    render();
+                }
+                buttons.appendChild(button);
+            });
         }
 
         function algus() {
@@ -291,6 +334,7 @@
 <body onload="algus()">
     <pre id="laud"></pre>
     <div id="vastus"></div>
+    <div id="buttons"></div>
 </body>
 
 </html>
