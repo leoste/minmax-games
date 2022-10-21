@@ -4,6 +4,16 @@
 <head>
     <title>Bloxorz</title>
     <script>
+        const SquareType = {
+                Horizontal: 'X',
+                Vertical: 'Z',
+                Upright: 'Y',
+                Finis: 'F',
+                WinFinis: 'W',
+                Edge: 'E',
+                Tile: 'T'
+            }
+
         /*  magic values:
 
             square type:
@@ -16,7 +26,7 @@
         */
         console.clear();
 
-        const states = {
+        const States = {
             doubleVisit: [
                 "TTTEEEEEEE",
                 "TYTEEEEEEE",
@@ -29,6 +39,14 @@
                 "TTTEEEEEEE",
                 "TYTEEEEEEE",
                 "TTTETTTTTE",
+                "ETTTTTTTTT",
+                "EEEEEETFTT",
+                "EEEEEETTTE"
+            ],
+            easy: [
+                "TTTEEEEEEE",
+                "TYTEEEEEEE",
+                "TTTTTTTTTE",
                 "ETTTTTTTTT",
                 "EEEEEETFTT",
                 "EEEEEETTTE"
@@ -45,68 +63,66 @@
                     state[i].push({
                         type: c
                     });
-
-                    if (c == 'T' || c == 'X' || c == 'Y' || c == 'Z') {
-                        /*state[i][j].wayX = undefined;
-                        state[i][j].wayY = undefined;
-                        state[i][j].wayZ = undefined;*/
-                    }
                 })
             })
 
             return state;
         }
 
-        let state = makeState(states.weirdJump);
+        let state = makeState(States.easy);
 
         function getPossiblePlaces(start) {
-            let counter = (start.square["way"+start.square.type]?.counter || 0) + 1;
+            let counter = (start.square["way" + start.square.type]?.counter || 0) + 1;
             let type = start.square.type;
-            
+
             switch (type) {
-                case 'X': {
+                case SquareType.Horizontal: {
                     return [
-                        { square: { type: 'Y', wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 2, y: start.pos.y, } },
-                        { square: { type: 'Y', wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
-                        { square: { type: 'X', wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
-                        { square: { type: 'X', wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
+                        { square: { type: SquareType.Upright, wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 2, y: start.pos.y, } },
+                        { square: { type: SquareType.Upright, wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
+                        { square: { type: SquareType.Horizontal, wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
+                        { square: { type: SquareType.Horizontal, wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
                     ];
                 }
-                case 'Y': {
+                case SquareType.Upright: {
                     return [
-                        { square: { type: 'X', wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
-                        { square: { type: 'X', wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 2, y: start.pos.y, } },
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 2, } }
+                        { square: { type: SquareType.Horizontal, wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
+                        { square: { type: SquareType.Horizontal, wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 2, y: start.pos.y, } },
+                        { square: { type: SquareType.Vertical, wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
+                        { square: { type: SquareType.Vertical, wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 2, } }
                     ];
                 }
-                case 'Z': {
+                case SquareType.Vertical: {
                     return [
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
-                        { square: { type: 'Z', wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
-                        { square: { type: 'Y', wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 2, } },
-                        { square: { type: 'Y', wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
+                        { square: { type: SquareType.Vertical, wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
+                        { square: { type: SquareType.Vertical, wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
+                        { square: { type: SquareType.Upright, wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 2, } },
+                        { square: { type: SquareType.Upright, wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
                     ];
                 }
             }
         }
 
+        function isFinis(square) {
+            return square.type === SquareType.Finis || square.type === SquareType.WinFinis
+        }
+
         function isValidPlace(place) {
             if (place.pos.y >= 0 && place.pos.y < state.length && place.pos.x >= 0 && place.pos.x < state[place.pos.y].length) {
-                if (state[place.pos.y][place.pos.x].type == 'E') {
+                if (state[place.pos.y][place.pos.x].type == SquareType.Edge) {
                     return false;
                 }
                 else {
                     let squareType, x, y;
 
                     if (place.square) squareType = place.square.type;
-                    else squareType = state[place.pos.y][place.pos.x].type === 'E' ? 'E' : 'T';
+                    else squareType = state[place.pos.y][place.pos.x].type === SquareType.Edge ? SquareType.Edge : SquareType.Tile;
 
-                    if (squareType == 'X') {
+                    if (squareType == SquareType.Horizontal) {
                         x = place.pos.x + 1;
                         y = place.pos.y;
                     }
-                    else if (squareType == 'Z') {
+                    else if (squareType == SquareType.Vertical) {
                         x = place.pos.x;
                         y = place.pos.y + 1;
                     }
@@ -142,11 +158,20 @@
         }
 
         function getStartAndFinis() {
+            state.forEach((row, i) => {
+                row.forEach((square, j) => {
+                    if (square.ids) square.ids = [];
+                    square.wayX = undefined;
+                    square.wayY = undefined;
+                    square.wayZ = undefined;
+                });
+            });
+
             let startPlace, finisPlace;
 
             state.forEach((row, i) => {
                 row.forEach((square, j) => {
-                    if (square.type === 'X' || square.type === 'Y' || square.type === 'Z') {
+                    if (square.type === SquareType.Horizontal || square.type === SquareType.Upright || square.type === SquareType.Vertical) {
                         startPlace = {
                             square,
                             pos: {
@@ -155,7 +180,7 @@
                             }
                         }
                     }
-                    else if (square.type === 'F' || square.type === 'W') {
+                    else if (isFinis(square)) {
                         finisPlace = {
                             square,
                             pos: {
@@ -173,9 +198,7 @@
         function explore() {
             // leia algus ja lõpp :)
 
-            let {startPlace, finisPlace } = getStartAndFinis();
-
-            
+            let { startPlace, finisPlace } = getStartAndFinis();
 
             let unknownPlaces = [startPlace];
             while (unknownPlaces.length > 0) {
@@ -195,19 +218,18 @@
                     }
                 });
             }
-
             let way = finisPlace.square.wayY;
 
             if (way) {
                 while (way.counter > 1) {
                     let square = state[way.pos.y][way.pos.x];
-                    
+
                     way = square["way" + way.type];
                     square.ids = square.ids || [];
-                    square.ids.push(way.counter);
+                    square.ids.unshift(way.counter);
                 }
 
-                finisPlace.square.type = 'W';
+                finisPlace.square.type = SquareType.WinFinis;
                 renderMessage("Route calculated! :)")
             }
             else {
@@ -220,22 +242,23 @@
         }
 
         function render() {
+            renderBoard();
+            renderButtons();            
+        }
+
+        function renderBoard() {
             let view = "<table>";
-
             let color = { index: -1, type: '' };
-
             state.forEach((row, i) => {
                 view += "<tr>";
                 row.forEach((square, j) => {
-                    view += '<td class="';
-
+                    view += '<td class="';                    
                     if (color.index === i * row.length + j) {
                         view += color.type;
                     }
                     else {
                         view += square.type;
                     }
-
                     view += '">';
 
                     if (square.ids) {
@@ -246,29 +269,27 @@
 
                     view += '</td>'
 
-                    if (square.type == 'X') {
+                    if (square.type == SquareType.Horizontal) {
                         color.index = i * row.length + j + 1;
                         color.type = square.type;
                     }
-                    else if (square.type == 'Z') {
+                    else if (square.type == SquareType.Vertical) {
                         color.index = (i + 1) * row.length + j;
                         color.type = square.type;
                     }
                 })
                 view += "</tr>";
             });
-
             view += "</table>";
-
             laud.innerHTML = view;
 
             buttons.innerHTML = '';
+        }
 
+        function renderButtons() {
             let { startPlace, finisPlace } = getStartAndFinis();
-
             let places = getPossiblePlaces(startPlace);
-
-            places.forEach((place) => {                
+            places.forEach((place) => {
                 let button = document.createElement('button');
 
                 let xOffset = place.pos.x - startPlace.pos.x;
@@ -280,17 +301,27 @@
                 else if (yOffset < 0) button.innerHTML = "Up";
 
                 button.disabled = !isValidPlace(place);
-                
                 button.onclick = () => {
-                    startPlace.square.type = "T";
-                    state[place.pos.y][place.pos.x].type = place.square.type;
-                    render();
+                    if (!isFinis(state[place.pos.y][place.pos.x]))
+                    {
+                        startPlace.square.type = SquareType.Tile;
+                        state[place.pos.y][place.pos.x].type = place.square.type;
+                        explore();
+                        render();
+                    }
+                    else
+                    {
+                        startPlace.square.type = SquareType.Tile;
+                        state[place.pos.y][place.pos.x].type = place.square.type;
+                        renderBoard();
+                        renderMessage("Vector");
+                    }
                 }
                 buttons.appendChild(button);
             });
         }
 
-        function algus() {
+        function load() {
             explore();
             render();
         }
@@ -331,7 +362,7 @@
     </style>
 </head>
 
-<body onload="algus()">
+<body onload="load()">
     <pre id="laud"></pre>
     <div id="vastus"></div>
     <div id="buttons"></div>
