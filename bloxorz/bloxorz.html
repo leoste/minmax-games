@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Bloxorz</title>
+    <script>
+        const SquareType = {
+                Horizontal: 'X',
+                Vertical: 'Z',
+                Upright: 'Y',
+                Finis: 'F',
+                WinFinis: 'W',
+                Edge: 'E',
+                Tile: 'T'
+            }
+
+        /*  magic values:
+
+            square type:
+            T, E, F, X, Y, Z
+            tile, edge, finis, lying horizontally, standing, lying vertically
+
+            way:
+            u, d, l, r, *, .
+            up, down, left, right, possible, undecided
+        */
+        console.clear();
+
+        const States = {
+            doubleVisit: [
+                "TTTEEEEEEE",
+                "TYTEEEEEEE",
+                "TTTTTTTTTE",
+                "ETTETTTTTT",
+                "EEEEEETFTT",
+                "EEEEEETTTE"
+            ],
+            weirdJump: [
+                "TTTEEEEEEE",
+                "TYTEEEEEEE",
+                "TTTETTTTTE",
+                "ETTTTTTTTT",
+                "EEEEEETFTT",
+                "EEEEEETTTE"
+            ],
+            easy: [
+                "TTTEEEEEEE",
+                "TYTEEEEEEE",
+                "TTTTTTTTTE",
+                "ETTTTTTTTT",
+                "EEEEEETFTT",
+                "EEEEEETTTE"
+            ]
+        }
+
+        function makeState(rows) {
+            let state = [];
+
+            rows.forEach((row, i) => {
+                state.push([]);
+
+                [...row].forEach((c, j) => {
+                    state[i].push({
+                        type: c
+                    });
+                })
+            })
+
+            return state;
+        }
+
+        let state = makeState(States.easy);
+
+        function getPossiblePlaces(start) {
+            let counter = (start.square["way" + start.square.type]?.counter || 0) + 1;
+            let type = start.square.type;
+
+            switch (type) {
+                case SquareType.Horizontal: {
+                    return [
+                        { square: { type: SquareType.Upright, wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 2, y: start.pos.y, } },
+                        { square: { type: SquareType.Upright, wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
+                        { square: { type: SquareType.Horizontal, wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
+                        { square: { type: SquareType.Horizontal, wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
+                    ];
+                }
+                case SquareType.Upright: {
+                    return [
+                        { square: { type: SquareType.Horizontal, wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
+                        { square: { type: SquareType.Horizontal, wayX: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 2, y: start.pos.y, } },
+                        { square: { type: SquareType.Vertical, wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 1, } },
+                        { square: { type: SquareType.Vertical, wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 2, } }
+                    ];
+                }
+                case SquareType.Vertical: {
+                    return [
+                        { square: { type: SquareType.Vertical, wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x + 1, y: start.pos.y, } },
+                        { square: { type: SquareType.Vertical, wayZ: { pos: start.pos, type, counter } }, pos: { x: start.pos.x - 1, y: start.pos.y, } },
+                        { square: { type: SquareType.Upright, wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y + 2, } },
+                        { square: { type: SquareType.Upright, wayY: { pos: start.pos, type, counter } }, pos: { x: start.pos.x, y: start.pos.y - 1, } }
+                    ];
+                }
+            }
+        }
+
+        function isFinis(square) {
+            return square.type === SquareType.Finis || square.type === SquareType.WinFinis
+        }
+
+        function isValidPlace(place) {
+            if (place.pos.y >= 0 && place.pos.y < state.length && place.pos.x >= 0 && place.pos.x < state[place.pos.y].length) {
+                if (state[place.pos.y][place.pos.x].type == SquareType.Edge) {
+                    return false;
+                }
+                else {
+                    let squareType, x, y;
+
+                    if (place.square) squareType = place.square.type;
+                    else squareType = state[place.pos.y][place.pos.x].type === SquareType.Edge ? SquareType.Edge : SquareType.Tile;
+
+                    if (squareType == SquareType.Horizontal) {
+                        x = place.pos.x + 1;
+                        y = place.pos.y;
+                    }
+                    else if (squareType == SquareType.Vertical) {
+                        x = place.pos.x;
+                        y = place.pos.y + 1;
+                    }
+                    else {
+                        return true;
+                    }
+
+                    return isValidPlace({ pos: { x, y } });
+                }
+            }
+            else {
+                // out of bounds
+                return false;
+            }
+        }
+
+        function trySetWay(stateSquare, placeSquare) {
+            if (!stateSquare.wayX && placeSquare.wayX) {
+                stateSquare.wayX = placeSquare.wayX;
+                return true;
+            }
+            else if (!stateSquare.wayY && placeSquare.wayY) {
+                stateSquare.wayY = placeSquare.wayY;
+                return true;
+            }
+            else if (!stateSquare.wayZ && placeSquare.wayZ) {
+                stateSquare.wayZ = placeSquare.wayZ;
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        function getStartAndFinis() {
+            state.forEach((row, i) => {
+                row.forEach((square, j) => {
+                    if (square.ids) square.ids = [];
+                    square.wayX = undefined;
+                    square.wayY = undefined;
+                    square.wayZ = undefined;
+                });
+            });
+
+            let startPlace, finisPlace;
+
+            state.forEach((row, i) => {
+                row.forEach((square, j) => {
+                    if (square.type === SquareType.Horizontal || square.type === SquareType.Upright || square.type === SquareType.Vertical) {
+                        startPlace = {
+                            square,
+                            pos: {
+                                x: j,
+                                y: i
+                            }
+                        }
+                    }
+                    else if (isFinis(square)) {
+                        finisPlace = {
+                            square,
+                            pos: {
+                                x: j,
+                                y: i
+                            }
+                        }
+                    }
+                });
+            });
+
+            return { startPlace, finisPlace };
+        }
+
+        function explore() {
+            // leia algus ja lõpp :)
+
+            let { startPlace, finisPlace } = getStartAndFinis();
+
+            let unknownPlaces = [startPlace];
+            while (unknownPlaces.length > 0) {
+                let currentPlace = unknownPlaces.shift();
+
+                let possiblePlaces = getPossiblePlaces(currentPlace);
+
+                possiblePlaces.forEach(place => {
+                    if (isValidPlace(place)) {
+
+                        let sSquare = state[place.pos.y][place.pos.x];
+                        let pSquare = place.square;
+
+                        if (trySetWay(sSquare, pSquare)) {
+                            unknownPlaces.push(place);
+                        }
+                    }
+                });
+            }
+            let way = finisPlace.square.wayY;
+
+            if (way) {
+                while (way.counter > 1) {
+                    let square = state[way.pos.y][way.pos.x];
+
+                    way = square["way" + way.type];
+                    square.ids = square.ids || [];
+                    square.ids.unshift(way.counter);
+                }
+
+                finisPlace.square.type = SquareType.WinFinis;
+                renderMessage("Route calculated! :)")
+            }
+            else {
+                renderMessage("No route available! :(");
+            }
+        }
+
+        function renderMessage(message) {
+            vastus.innerHTML = message;
+        }
+
+        function render() {
+            renderBoard();
+            renderButtons();            
+        }
+
+        function renderBoard() {
+            let view = "<table>";
+            let color = { index: -1, type: '' };
+            state.forEach((row, i) => {
+                view += "<tr>";
+                row.forEach((square, j) => {
+                    view += '<td class="';                    
+                    if (color.index === i * row.length + j) {
+                        view += color.type;
+                    }
+                    else {
+                        view += square.type;
+                    }
+                    view += '">';
+
+                    if (square.ids) {
+                        square.ids.forEach(id => {
+                            view += id + "<br>";
+                        });
+                    }
+
+                    view += '</td>'
+
+                    if (square.type == SquareType.Horizontal) {
+                        color.index = i * row.length + j + 1;
+                        color.type = square.type;
+                    }
+                    else if (square.type == SquareType.Vertical) {
+                        color.index = (i + 1) * row.length + j;
+                        color.type = square.type;
+                    }
+                })
+                view += "</tr>";
+            });
+            view += "</table>";
+            laud.innerHTML = view;
+
+            buttons.innerHTML = '';
+        }
+
+        function renderButtons() {
+            let { startPlace, finisPlace } = getStartAndFinis();
+            let places = getPossiblePlaces(startPlace);
+            places.forEach((place) => {
+                let button = document.createElement('button');
+
+                let xOffset = place.pos.x - startPlace.pos.x;
+                let yOffset = place.pos.y - startPlace.pos.y;
+
+                if (xOffset > 0) button.innerHTML = "Right";
+                else if (xOffset < 0) button.innerHTML = "Left";
+                else if (yOffset > 0) button.innerHTML = "Down";
+                else if (yOffset < 0) button.innerHTML = "Up";
+
+                button.disabled = !isValidPlace(place);
+                button.onclick = () => {
+                    if (!isFinis(state[place.pos.y][place.pos.x]))
+                    {
+                        startPlace.square.type = SquareType.Tile;
+                        state[place.pos.y][place.pos.x].type = place.square.type;
+                        explore();
+                        render();
+                    }
+                    else
+                    {
+                        startPlace.square.type = SquareType.Tile;
+                        state[place.pos.y][place.pos.x].type = place.square.type;
+                        renderBoard();
+                        renderMessage("Vector");
+                    }
+                }
+                buttons.appendChild(button);
+            });
+        }
+
+        function load() {
+            explore();
+            render();
+        }
+    </script>
+    <style>
+        td {
+            height: 50px;
+            width: 50px;
+        }
+
+        .E {
+            background-color: burlywood;
+        }
+
+        .T {
+            background-color: antiquewhite;
+        }
+
+        .F {
+            background-color: black;
+        }
+
+        .W {
+            background-color: gold;
+        }
+
+        .X {
+            background-color: pink;
+        }
+
+        .Y {
+            background-color: lightblue;
+        }
+
+        .Z {
+            background-color: palegreen;
+        }
+    </style>
+</head>
+
+<body onload="load()">
+    <pre id="laud"></pre>
+    <div id="vastus"></div>
+    <div id="buttons"></div>
+</body>
+
+</html>
