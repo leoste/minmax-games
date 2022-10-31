@@ -69,7 +69,7 @@
             return state;
         }
 
-        let state = makeState(States.easy);
+        let state = makeState(States.weirdJump);
 
         function getPossiblePlaces(start) {
             let counter = (start.square["way" + start.square.type]?.counter || 0) + 1;
@@ -111,6 +111,14 @@
             if (place.pos.y >= 0 && place.pos.y < state.length && place.pos.x >= 0 && place.pos.x < state[place.pos.y].length) {
                 if (state[place.pos.y][place.pos.x].type == SquareType.Edge) {
                     return false;
+                }
+                else if (isFinis(state[place.pos.y][place.pos.x])) {
+                    if (place.square && place.square.type == SquareType.Upright) {
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
                 }
                 else {
                     let squareType, x, y;
@@ -302,19 +310,19 @@
 
                 button.disabled = !isValidPlace(place);
                 button.onclick = () => {
-                    if (!isFinis(state[place.pos.y][place.pos.x]))
-                    {
-                        startPlace.square.type = SquareType.Tile;
-                        state[place.pos.y][place.pos.x].type = place.square.type;
-                        explore();
-                        render();
-                    }
-                    else
+                    if (isFinis(state[place.pos.y][place.pos.x]))
                     {
                         startPlace.square.type = SquareType.Tile;
                         state[place.pos.y][place.pos.x].type = place.square.type;
                         renderBoard();
                         renderMessage("Vector");
+                    }
+                    else
+                    {
+                        startPlace.square.type = SquareType.Tile;
+                        state[place.pos.y][place.pos.x].type = place.square.type;
+                        explore();
+                        render();
                     }
                 }
                 buttons.appendChild(button);
