@@ -17,8 +17,8 @@
     const rules = {
       board: {
         width: 8,
-        height: 8,
-        pieceRows: 3
+        height: 12,
+        pieceRows: 1
       },
       ai: {
         depth: 3
@@ -383,12 +383,33 @@
       }
     }
 
-    const getBestNextState = (state) => {
+    const countPieces = (state) => {
+      let xCount = state[0].filter(e => e === 'X' || e === 'x').length;
+      let nCount = state[0].filter(e => e === 'N' || e === 'n').length;
+      return { xCount, nCount }
+    }
+
+    const getBestNextState = (state) => {   
+      let { xCount: startXCount, nCount: startNCount } = countPieces(state);
+      console.log(startXCount, startNCount);
+      
       let states = getNextStates(state);
 
       if (states.length > 0) {
+        let consoleArray = [];
+        states.forEach(state => {
+          let { xCount, nCount } = countPieces(state);
+          consoleArray.push({ x: startXCount - xCount, n: startNCount - nCount })
+        })
+        console.log(consoleArray)
+        
         let bestMultiplier = getBestMultiplier(state[1]);
-        return pickBestState(states, bestMultiplier);
+        let bestState = pickBestState(states, bestMultiplier);
+
+        let { xCount: bestXCount, nCount: bestNCount } = countPieces(bestState);
+        console.log({ x: startXCount - bestXCount, n: startNCount - bestNCount })
+
+        return bestState;
       }
     }
 
@@ -418,10 +439,10 @@
             if (i >= 0 && i < rules.board.pieceRows) {
               currentState[0].push(rules.players.top.pieces.regular.id);
             }
-            else if (i >= rules.board.pieceRows && i < rules.board.height - rules.board.pieceRows) {
+            else if (i >= rules.board.pieceRows && i < rules.board.height && i % 2 == 0) {
               currentState[0].push(rules.players.empty.pieces.regular.id);
             }
-            else if (i >= rules.board.height - rules.board.pieceRows && i < rules.board.height) {
+            else if (i >= rules.board.pieceRows && i < rules.board.height) {
               currentState[0].push(rules.players.bottom.pieces.regular.id);
             }
           }
